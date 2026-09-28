@@ -1,4 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
+import { RAW_DIR } from '../config.js';
 import { db } from '../db.js';
 import { provider, revertToSnapshot } from '../ledger.js';
 import { resetUpiStore } from '../upi.js';
@@ -35,6 +38,8 @@ export default async function demoRoutes(app: FastifyInstance): Promise<void> {
       const reverted = await revertToSnapshot();
       for (const t of RESETTABLE_TABLES) db.exec(`delete from ${t};`);
       db.prepare(`update projector_cursor set last_block = -1 where id = 1`).run();
+      // VCs are keyed by sbHash, which is identical after a reseed; stale files would skip re-anchoring
+      for (const f of fs.readdirSync(RAW_DIR)) if (f.startsWith('ebrc-')) fs.rmSync(path.join(RAW_DIR, f));
       resetUpiStore();
       return { ok: true, chainReverted: reverted };
     } finally {

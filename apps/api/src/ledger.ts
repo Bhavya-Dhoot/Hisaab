@@ -330,6 +330,7 @@ export async function takeSnapshot(): Promise<void> {
 export async function revertToSnapshot(): Promise<boolean> {
   if (!snapshotId) return false;
   const ok = await provider.send('evm_revert', [snapshotId]);
+  signerCache.clear(); // cached NonceManagers hold pre-revert nonces
   await takeSnapshot(); // evm_revert consumes the snapshot; take a fresh one for next time
   return ok;
 }
