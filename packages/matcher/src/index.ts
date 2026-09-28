@@ -13,6 +13,6 @@ export type {
 
 export { parseMT103 } from './parse.js';
 export { match } from './match.js';
-export { heuristicExtractor, anthropicExtractor } from './extract.js';
+export { heuristicExtractor } from './extract.js';
 export { PRESETS } from './presets.js';
 export type { PresetSb, PresetOpts } from './presets.js';
