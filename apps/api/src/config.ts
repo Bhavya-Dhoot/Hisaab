@@ -16,7 +16,6 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-change-me',
   webhookUrl: process.env.WEBHOOK_URL ?? '',
   webhookSecret: process.env.WEBHOOK_SECRET ?? 'dev-webhook-secret',
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
   webOrigin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
   leoRate: 83.65, // mock LEO-date USD->INR rate
   creditRate: 83.9, // mock credit-date USD->INR rate

@@ -1,27 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { match, heuristicExtractor, anthropicExtractor } from '@hisab/matcher';
-import type { Candidate, Extractor, MatchConfig } from '@hisab/matcher';
+import { match, heuristicExtractor } from '@hisab/matcher';
+import type { Candidate, MatchConfig } from '@hisab/matcher';
 import { db, toJson, fromJson } from './db.js';
-import { config, RAW_DIR } from './config.js';
+import { RAW_DIR } from './config.js';
 import { sendTx, ACCOUNT_INDEX } from './ledger.js';
 import { applyReceipt } from './projector.js';
 import { publish } from './bus.js';
-
-function buildExtractor(): Extractor {
-  const heuristic = heuristicExtractor();
-  if (!config.anthropicApiKey) return heuristic;
-  const anthro = anthropicExtractor(config.anthropicApiKey);
-  return async (input) => {
-    try {
-      return await anthro(input);
-    } catch (err) {
-      console.warn('[matching] anthropicExtractor failed, falling back to heuristic:', (err as Error)?.message);
-      return heuristic(input);
-    }
-  };
-}
 
 function getOpsConfig(): MatchConfig {
   const row = db.prepare(`select auto, review, tolerance_pct from ops_config where id = 1`).get() as {
@@ -82,7 +68,7 @@ export async function runMatch(irmHash: string): Promise<void> {
 
   const candidates = loadCandidates(remit.beneficiary_iec);
   const cfg = getOpsConfig();
-  const extractor = buildExtractor();
+  const extractor = heuristicExtractor();
 
   const result = await match(
     { raw: rawFile.raw, creditedInrMinor: remit.inr_minor, chargesMinor: remit.charges_minor ?? undefined, creditTs: remit.credit_ts, beneficiaryIec: remit.beneficiary_iec },
