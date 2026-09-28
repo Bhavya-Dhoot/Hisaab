@@ -2,7 +2,7 @@
 
 Pure TypeScript IRM ↔ Shipping-Bill matcher from `docs/MATCHING_ENGINE.md`:
 `parseMT103` → Stage A rules → (if below `auto`) Stage B extraction
-(`heuristicExtractor` offline, or `anthropicExtractor`) → Stage C re-verify → band. No
+(`heuristicExtractor`, fully offline) → Stage C re-verify → band. No
 fuzzy-match dep — `nameSimilarity` is a small normalised-token Levenshtein ratio.
 
 ## Deviations from the spec's raw weights (documented per task instructions)

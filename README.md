@@ -41,7 +41,6 @@ pnpm e2e          # full demo loop over HTTP against the running stack
 pnpm demo:remit   # fire the messy "typo" MT103 at SB 6674321
 ```
 
-Optional: set `ANTHROPIC_API_KEY` to use Claude for reference extraction. Without it, a deterministic heuristic extractor is used, so the demo runs fully offline.
 Other env vars: `API_PORT`, `RPC_URL`, `JWT_SECRET`, `WEBHOOK_URL`, `WEBHOOK_SECRET`, `WEB_ORIGIN`.
 
 ## Demo walkthrough
