@@ -52,7 +52,13 @@ export const PRESETS: Record<'clean' | 'typo' | 'bundle' | 'noref' | 'fraud', (s
 
   typo(sb) {
     const typoRef = sb.invoiceNos[0].replace(/0/g, 'O');
-    return buildRaw(sb, sb.fobMinor, [`PAYMENT INV ${typoRef}`], '');
+    // API_SPEC §8: letter O for zero, USD 45 charges deducted
+    return buildRaw(
+      sb,
+      sb.fobMinor - 4500,
+      [`PAYMNT FOR GOODS INV ${typoRef}`, 'LESS BANK CHGS'],
+      `/ACC/CHGS ${sb.ccy} 45.00`
+    );
   },
 
   bundle(sb, opts) {
