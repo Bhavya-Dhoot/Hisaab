@@ -6,6 +6,7 @@
     "node": ">=22.13"
   },
   "scripts": {
+    "postinstall": "pnpm -F @hisab/matcher build",
     "test": "pnpm -r test",
     "dev": "concurrently -k -n chain,api,web -c blue,green,magenta \"pnpm -F @hisab/contracts node\" \"wait-on tcp:127.0.0.1:8545 && pnpm -F @hisab/contracts deploy:local && pnpm -F @hisab/api dev\" \"pnpm -F @hisab/web dev\"",
     "demo:seed": "pnpm -F @hisab/api demo:seed",
