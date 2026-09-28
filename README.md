@@ -20,7 +20,7 @@ Day 75  Realised on-chain ─► eBRC anchored ─► financier repaid ─► ba
 | `contracts/` | Solidity 0.8.24 + Hardhat. `ShippingBillRegistry`, `ReceivableToken` (ERC-1155 escrow lock, double-finance guard), `RemittanceRegistry`, `RealisationEngine` (waterfall), `EBRCIssuer`, `PayoutLedger`, `HisabRoles` |
 | `packages/matcher/` | MT103 parser + rules/LLM hybrid matcher. The LLM only proposes references; rules re-verify; thresholds and humans decide |
 | `apps/api/` | Fastify API: ingest, offers and on-chain lock, idempotent UPI payout adapter, ops queue, eBRC verifiable credentials, explorer, SSE, mocks for ICEGATE / SWIFT / UPI / DGFT |
-| `apps/web/` | Vite + React console: Exporter, Financier, Bank Ops, Explorer tabs, demo control bar, phone notification mock |
+| `apps/web/` | Vite + React + Tailwind v4 console on the "Neel & Haldi" design system ([`DESIGN.md`](apps/web/DESIGN.md)): Exporter, Financier, Bank Ops, Explorer tabs, demo control bar, phone notification mock |
 
 ## Quick start
 

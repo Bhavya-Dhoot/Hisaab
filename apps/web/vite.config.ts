@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // apps/web -> apps -> hisab (repo root)
@@ -52,7 +53,7 @@ function seedMiddleware(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), seedMiddleware()],
+  plugins: [react(), tailwindcss(), seedMiddleware()],
   server: {
     port: 5173,
     proxy: {

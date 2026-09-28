@@ -84,7 +84,7 @@ export default async function exporterRoutes(app: FastifyInstance): Promise<void
           db.prepare(`update offers set status = 'REJECTED_LOCKED' where id = ?`).run(offer.id);
           db.prepare(`insert into alerts (id, type, message, sb_hash, org_id) values (?, 'DOUBLE_FINANCE_ATTEMPT', ?, ?, ?)`).run(
             randomUUID(),
-            `Offer ${offer.id} rejected — SB ${sb.sb_hash} is already locked by another financier.`,
+            `Offer ${offer.id} rejected. SB ${sb.sb_hash} is already locked by another financier.`,
             sb.sb_hash,
             offer.financier_id
           );

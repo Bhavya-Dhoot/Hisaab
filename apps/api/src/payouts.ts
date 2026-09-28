@@ -88,7 +88,7 @@ async function runAttempts(id: string): Promise<void> {
         publish(
           'payout.confirmed',
           { sbHash: row.sb_hash, leg: row.leg, inrMinor: row.amount_minor, utr: resp.utr },
-          `₹${(row.amount_minor / 100).toLocaleString('en-IN')} credited — Hisab ${legLabel(row.leg)} on SB ${sb?.sb_no ?? ''}`
+          `₹${(row.amount_minor / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} credited. Hisab ${legLabel(row.leg)} on SB ${sb?.sb_no ?? ''}`
         );
         return;
       }

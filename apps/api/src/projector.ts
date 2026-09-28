@@ -169,7 +169,7 @@ export function applyLog(log: DecodedLog, ctx: { lastIrmHashForSb: Map<string, s
       publish(
         'token.locked',
         { sbHash, financier: financierOrg?.id, advanceInrMinor: u(log.args.advanceInrMinor), rateBps: u(log.args.rateBps) },
-        `₹${(u(log.args.advanceInrMinor) / 100).toLocaleString('en-IN')} advance locked in — Hisab financing SB ${sb?.sb_no ?? ''}`
+        `₹${(u(log.args.advanceInrMinor) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} advance locked in. Hisab financing SB ${sb?.sb_no ?? ''}`
       );
       break;
     }
@@ -245,7 +245,7 @@ export function applyLog(log: DecodedLog, ctx: { lastIrmHashForSb: Map<string, s
       publish(
         'sb.realised',
         { sbHash, irmHash, realisedInr: u(log.args.realisedInr) },
-        `SB ${sb?.sb_no ?? ''} realised on chain — waterfall computed.`
+        `SB ${sb?.sb_no ?? ''} realised on chain. Waterfall computed.`
       );
       void issueEbrc(sbHash, irmHash);
       break;
@@ -256,7 +256,7 @@ export function applyLog(log: DecodedLog, ctx: { lastIrmHashForSb: Map<string, s
         vc: s(log.args.vcHash),
         sb_hash: sbHash,
       });
-      publish('ebrc.issued', { sbHash, vcHash: s(log.args.vcHash) }, `eBRC issued for SB — verifiable credential anchored.`);
+      publish('ebrc.issued', { sbHash, vcHash: s(log.args.vcHash) }, `eBRC issued. Verifiable credential anchored.`);
       break;
     }
     case 'PayoutRecorded': {

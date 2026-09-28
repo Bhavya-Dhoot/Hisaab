@@ -129,9 +129,9 @@ export async function runMatch(irmHash: string): Promise<void> {
     const alertId = randomUUID();
     db.prepare(`insert into alerts (id, type, message, irm_hash) values (?, 'UNMATCHED_REMITTANCE', ?, ?)`).run(
       alertId,
-      `Remittance ${irmHash.slice(0, 10)}... could not be matched with confidence — routed to alert.`,
+      `Remittance ${irmHash.slice(0, 10)}... could not be matched with confidence. Routed to alert.`,
       irmHash
     );
-    publish('alert', { irmHash, alerts: result.alerts }, `Remittance unmatched — needs manual review.`);
+    publish('alert', { irmHash, alerts: result.alerts }, `Remittance unmatched. Needs manual review.`);
   }
 }

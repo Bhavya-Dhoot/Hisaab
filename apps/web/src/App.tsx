@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { MotionConfig } from 'motion/react';
 import { api } from './api';
 import { SessionCtx, ORG_NAMES, type Session } from './session';
 import { ToastProvider, useToast } from './components/Toasts';
@@ -36,12 +37,12 @@ function AppInner() {
       await Promise.all(
         PERSONA_ORG_NAMES.map(async (name) => {
           const org = byName[name];
-          if (!org) return; // not seeded yet — fine, views handle missing tokens gracefully
+          if (!org) return; // not seeded yet, fine, views handle missing tokens gracefully
           try {
             const res = await api.login(org.id);
             tokens[name] = res.token;
           } catch {
-            // ignore — org may not exist before first seed
+            // ignore, org may not exist before first seed
           }
         })
       );
@@ -75,10 +76,10 @@ function AppInner() {
 
   return (
     <SessionCtx.Provider value={session}>
-      <div className="min-h-screen bg-slate-950 pb-24">
+      <div className="min-h-screen bg-bg pb-24">
         <Header tab={tab} onTab={setTab} />
         <ControlBar />
-        <main>
+        <main className="xl:pr-[288px]">
           {tab === 'exporter' && <ExporterView />}
           {tab === 'financier' && <FinancierView />}
           {tab === 'bankops' && <BankOpsView />}
@@ -92,8 +93,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AppInner />
-    </ToastProvider>
+    <MotionConfig reducedMotion="user">
+      <ToastProvider>
+        <AppInner />
+      </ToastProvider>
+    </MotionConfig>
   );
 }

@@ -62,7 +62,7 @@ export function useEvents(onEvent: (e: DomainEventEnvelope) => void, onTick?: ()
     }
 
     // Always keep a slow background poll as a belt-and-braces fallback even
-    // when SSE looks connected — cheap, and covers silently-stalled streams.
+    // when SSE looks connected, cheap, and covers silently-stalled streams.
     const safetyTimer = setInterval(() => {
       if (!connected) onTickRef.current?.();
     }, 2000);

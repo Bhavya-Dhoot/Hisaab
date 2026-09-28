@@ -1,32 +1,34 @@
+import { Moon, Sun } from '@phosphor-icons/react';
+import { Tabs } from '../ui/Tabs';
+import { useTheme } from '../theme';
+
 export type Tab = 'exporter' | 'financier' | 'bankops' | 'explorer';
 
-const TABS: { id: Tab; label: string; sub: string }[] = [
-  { id: 'exporter', label: 'Exporter', sub: 'Sharma Textiles' },
-  { id: 'financier', label: 'Financier', sub: 'Citi Trade / Kotak NBFC' },
-  { id: 'bankops', label: 'Bank Ops', sub: 'Hisab Ops' },
-  { id: 'explorer', label: 'Explorer', sub: 'DGFT / Regulator' },
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'exporter', label: 'Exporter' },
+  { id: 'financier', label: 'Financier' },
+  { id: 'bankops', label: 'Bank Ops' },
+  { id: 'explorer', label: 'Explorer' },
 ];
 
 export function Header({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
+  const [theme, toggleTheme] = useTheme();
   return (
-    <header className="sticky top-0 z-40 flex h-[52px] items-center gap-4 border-b border-slate-800 bg-slate-950/95 px-4 backdrop-blur">
-      <div className="text-lg font-bold tracking-tight text-slate-100">
-        Hisab <span className="text-slate-400">· हिसाब</span>
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-line bg-surface/95 px-4 backdrop-blur">
+      <div className="flex shrink-0 items-baseline gap-1.5 font-display text-lg font-semibold tracking-tight text-text">
+        Hisab <span className="font-deva text-base text-muted">हिसाब</span>
       </div>
-      <nav className="flex items-center gap-1">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => onTab(t.id)}
-            className={`flex flex-col items-start rounded-md px-3 py-1 text-left transition ${
-              tab === t.id ? 'bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-700' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-            }`}
-          >
-            <span className="text-sm font-semibold leading-tight">{t.label}</span>
-            <span className="text-[10px] leading-tight text-slate-500">{t.sub}</span>
-          </button>
-        ))}
+      <nav className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none]">
+        <Tabs groupId="persona-tabs" items={TABS} value={tab} onChange={onTab} />
       </nav>
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label="Toggle theme"
+        className="shrink-0 rounded-[var(--radius-ui)] border border-line p-1.5 text-muted transition-colors hover:text-text active:translate-y-px"
+      >
+        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+      </button>
     </header>
   );
 }

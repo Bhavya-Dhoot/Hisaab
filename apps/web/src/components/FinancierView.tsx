@@ -1,16 +1,32 @@
 import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { WarningOctagon } from '@phosphor-icons/react';
 import { api, ApiError } from '../api';
 import { useSession, ORG_NAMES } from '../session';
 import { useToast } from './Toasts';
-import { Card, SectionTitle, StateBadge, CopyHash, EmptyState, Spinner } from './Common';
-import { formatInrMinor, formatUsdMinor } from '../format';
+import { Panel } from '../ui/Panel';
+import { Stamp } from '../ui/Stamp';
+import { Money } from '../ui/Money';
+import { Hash } from '../ui/Hash';
+import { Button } from '../ui/Button';
+import { Field } from '../ui/Field';
+import { Slider } from '../ui/Slider';
+import { Tabs } from '../ui/Tabs';
+import { Empty } from '../ui/Empty';
+import { Skeleton } from '../ui/Skeleton';
+import { RuleRow } from '../ui/RuleRow';
 import type { MarketReceivable, BookRow, Alert } from '../types';
 
 type FinancierPersona = 'citiTrade' | 'kotakNbfc';
+const PERSONAS: { id: FinancierPersona; label: string }[] = [
+  { id: 'citiTrade', label: 'Citi Trade' },
+  { id: 'kotakNbfc', label: 'Kotak NBFC' },
+];
 
 export function FinancierView() {
   const session = useSession();
   const toast = useToast();
+  const reduce = useReducedMotion();
   const [persona, setPersona] = useState<FinancierPersona>('citiTrade');
   const orgName = persona === 'citiTrade' ? ORG_NAMES.citiTrade : ORG_NAMES.kotakNbfc;
   const token = session.tokenByOrgName[orgName];
@@ -18,11 +34,14 @@ export function FinancierView() {
   const [market, setMarket] = useState<MarketReceivable[]>([]);
   const [book, setBook] = useState<BookRow[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [waterfalls, setWaterfalls] = useState<Record<string, { financierDue: number; platformFee: number; exporterBalance: number; shortfall: number }>>({});
+  const [waterfalls, setWaterfalls] = useState<
+    Record<string, { financierDue: number; platformFee: number; exporterBalance: number; shortfall: number }>
+  >({});
   const [selectedSb, setSelectedSb] = useState<string | null>(null);
   const [advancePct, setAdvancePct] = useState(85);
   const [rateBps, setRateBps] = useState(1200);
   const [fraudBanner, setFraudBanner] = useState<{ message: string; chainTx?: string } | null>(null);
+  const [shakeKey, setShakeKey] = useState(0);
 
   useEffect(() => {
     api
@@ -37,8 +56,14 @@ export function FinancierView() {
 
   useEffect(() => {
     if (!token) return;
-    api.getMyBook(token).then((r) => setBook(r.book)).catch(() => undefined);
-    api.getMyAlerts(token).then((r) => setAlerts(r.alerts)).catch(() => undefined);
+    api
+      .getMyBook(token)
+      .then((r) => setBook(r.book))
+      .catch(() => undefined);
+    api
+      .getMyAlerts(token)
+      .then((r) => setAlerts(r.alerts))
+      .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, session.refreshTick]);
 
@@ -72,7 +97,7 @@ export function FinancierView() {
     try {
       const validUntil = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
       await api.createOffer(token, { sbHash: selectedSb, advancePct, rateBps, validUntil });
-      toast.push('success', `Offer submitted: ${advancePct}% advance @ ${(rateBps / 100).toFixed(2)}% rate.`);
+      toast.push('success', `Offer submitted: ${advancePct}% advance at ${(rateBps / 100).toFixed(2)}% rate.`);
       session.bumpRefresh();
     } catch (e) {
       toast.push('error', `Offer failed: ${(e as Error).message}`);
@@ -80,30 +105,29 @@ export function FinancierView() {
   }
 
   async function triggerDoubleFinance() {
-    // The fraud/double-finance beat: exporter (Sharma) tries to accept the Kotak NBFC
-    // offer on SB 6674321 after it is already locked to Citi Trade. Offer acceptance is
-    // an EXPORTER-only action (apps/api/src/routes/exporter.ts), so this uses Sharma's
-    // token even though the button lives on the Financier tab, per the demo beat sheet.
+    // Offer acceptance is an exporter-only action, so this uses Sharma's token even
+    // though the button lives on the Financier tab, per the demo beat sheet.
     const exporterToken = session.tokenByOrgName[ORG_NAMES.exporter];
     if (!exporterToken) return toast.push('error', 'Exporter not logged in yet.');
     setFraudBanner(null);
     try {
       const { shippingBills } = await api.getMyShippingBills(exporterToken);
       const sbA = shippingBills.find((sb) => sb.sb_no === '6674321') ?? shippingBills[0];
-      if (!sbA) return toast.push('error', 'SB 6674321 not found — seed the demo first.');
+      if (!sbA) return toast.push('error', 'SB 6674321 not found, seed the demo first.');
       const { offers } = await api.getOffersForSb(exporterToken, sbA.sb_hash);
       const kotakOrgId = session.orgByName[ORG_NAMES.kotakNbfc]?.id;
       const kotakOffer = offers.find((o) => o.financier_id === kotakOrgId);
       if (!kotakOffer) {
-        toast.push('info', 'No open Kotak NBFC offer left on SB 6674321 (already rejected, or SB not yet financed by Citi).');
+        toast.push('info', 'No open Kotak NBFC offer left on SB 6674321.');
         return;
       }
       await api.acceptOffer(exporterToken, kotakOffer.id);
-      toast.push('info', 'Kotak offer accepted without a prior lock — no double-finance to demonstrate right now.');
+      toast.push('info', 'Kotak offer accepted without a prior lock, no double-finance to demonstrate right now.');
       session.bumpRefresh();
     } catch (e) {
       if (e instanceof ApiError && e.code === 'ALREADY_LOCKED') {
         setFraudBanner({ message: e.message, chainTx: e.chainTx });
+        setShakeKey((k) => k + 1);
       } else {
         toast.push('error', `Double-finance check failed: ${(e as Error).message}`);
       }
@@ -112,168 +136,131 @@ export function FinancierView() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Acting as</span>
-        <button
-          onClick={() => setPersona('citiTrade')}
-          className={`rounded-md px-3 py-1 text-xs font-semibold ${persona === 'citiTrade' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
-        >
-          Citi Trade
-        </button>
-        <button
-          onClick={() => setPersona('kotakNbfc')}
-          className={`rounded-md px-3 py-1 text-xs font-semibold ${persona === 'kotakNbfc' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
-        >
-          Kotak NBFC
-        </button>
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium text-muted">Acting as</span>
+        <Tabs groupId="financier-persona" items={PERSONAS} value={persona} onChange={setPersona} />
       </div>
 
-      <Card className="border-rose-900/60">
-        <SectionTitle>Fraud case: double-finance</SectionTitle>
-        <p className="mb-3 text-xs text-slate-500">
-          Accept the Kotak NBFC offer on SB 6674321 — after Citi Trade has already locked it. The chain should say no.
+      <Panel title="Fraud case: double-finance">
+        <p className="mb-3 text-sm text-muted">
+          Accept the Kotak NBFC offer on SB 6674321 after Citi Trade has already locked it. The chain should refuse it.
         </p>
-        <button
-          onClick={triggerDoubleFinance}
-          className="rounded-md border border-rose-800 bg-rose-950/60 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-900/70"
-        >
+        <Button variant="danger" size="sm" onClick={triggerDoubleFinance}>
           Accept Kotak NBFC offer on SB 6674321
-        </button>
+        </Button>
         {fraudBanner && (
-          <div className="animate-slide-in mt-3 rounded-lg border border-rose-700 bg-rose-950/80 p-3 text-sm text-rose-200">
-            <div className="font-semibold">ALREADY_LOCKED — reverted on-chain</div>
-            <div className="mt-1 text-xs text-rose-300">{fraudBanner.message}</div>
-            {fraudBanner.chainTx && (
-              <div className="mt-2 text-xs">
-                Reverted tx <CopyHash hash={fraudBanner.chainTx} />
-              </div>
-            )}
-          </div>
+          <motion.div
+            key={shakeKey}
+            animate={reduce ? {} : { x: [0, -6, 6, -6, 6, -3, 3, 0] }}
+            transition={{ duration: 0.3 }}
+            className="mt-3 flex items-start gap-2 rounded-[var(--radius-ui)] border border-danger bg-danger-soft p-3 text-sm"
+          >
+            <WarningOctagon size={18} className="mt-0.5 shrink-0 text-danger" />
+            <div>
+              <div className="font-mono tabular font-semibold text-danger">Already financed. The ledger refused a second lock.</div>
+              <div className="mt-1 break-all font-mono text-[11px] text-danger/80">{fraudBanner.message}</div>
+              {fraudBanner.chainTx && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-danger">
+                  <span>Reverted tx</span>
+                  <Hash value={fraudBanner.chainTx} />
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
-      </Card>
+      </Panel>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
-        <Card>
-          <SectionTitle>Market — open receivables</SectionTitle>
-          {market.length === 0 && <EmptyState>No open receivables right now.</EmptyState>}
-          <div className="flex flex-col gap-2">
+        <Panel title="Market: open receivables">
+          {market.length === 0 && <Empty message="No open receivables right now." />}
+          <div className="flex flex-col">
             {market.map((sb) => (
-              <button key={sb.sb_hash} onClick={() => setSelectedSb(sb.sb_hash)} className="text-left">
-                <div
-                  className={`rounded-lg border p-3 transition ${
-                    selectedSb === sb.sb_hash ? 'border-emerald-600 bg-emerald-950/20' : 'border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-sm text-slate-200">SB {sb.sb_no}</span>
-                    <StateBadge state={sb.state} />
+              <button
+                key={sb.sb_hash}
+                onClick={() => setSelectedSb(sb.sb_hash)}
+                className={`flex items-center justify-between gap-3 border-b border-line py-2.5 text-left transition-colors last:border-b-0 ${
+                  selectedSb === sb.sb_hash ? 'bg-raised shadow-[inset_2px_0_0_var(--c-accent)]' : 'hover:bg-sunken'
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="font-mono tabular text-sm text-text">SB {sb.sb_no}</div>
+                  <div className="truncate text-xs text-muted">
+                    {sb.risk.buyerCountry}, exporter has {sb.risk.exporterRealisedCount} prior realised shipment
+                    {sb.risk.exporterRealisedCount === 1 ? '' : 's'}
                   </div>
-                  <div className="mt-1 flex items-baseline justify-between">
-                    <span className="font-semibold text-slate-100">{formatInrMinor(sb.fob_inr_minor)}</span>
-                    <span className="text-xs text-slate-500">{formatUsdMinor(sb.fob_minor)}</span>
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Risk: {sb.risk.buyerCountry} · exporter has {sb.risk.exporterRealisedCount} prior realised shipment(s)
-                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Money minor={sb.fob_inr_minor} size="sm" />
+                  <Stamp state={sb.state} size="sm" />
                 </div>
               </button>
             ))}
           </div>
-        </Card>
+        </Panel>
 
-        <Card>
-          <SectionTitle>Make offer</SectionTitle>
-          {!selectedSb && <EmptyState>Pick a receivable from the market.</EmptyState>}
+        <Panel title="Make offer">
+          {!selectedSb && <Empty message="Pick a receivable from the market." />}
           {selectedSb && (
-            <div className="flex flex-col gap-3">
-              <label className="text-xs text-slate-400">
-                Advance % <span className="font-semibold text-slate-200">{advancePct}%</span>
-                <input
-                  type="range"
-                  min={50}
-                  max={90}
-                  value={advancePct}
-                  onChange={(e) => setAdvancePct(Number(e.target.value))}
-                  className="mt-1 w-full"
-                />
-              </label>
-              <label className="text-xs text-slate-400">
-                Rate (bps) <span className="font-semibold text-slate-200">{rateBps} ({(rateBps / 100).toFixed(2)}%)</span>
-                <input
-                  type="range"
-                  min={800}
-                  max={2000}
-                  step={25}
-                  value={rateBps}
-                  onChange={(e) => setRateBps(Number(e.target.value))}
-                  className="mt-1 w-full"
-                />
-              </label>
-              <button
-                onClick={submitOffer}
-                className="mt-1 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
-              >
+            <div className="flex flex-col gap-4">
+              <Field label="Advance against FOB">
+                <Slider value={advancePct} min={50} max={90} onChange={setAdvancePct} format={(v) => `${v}%`} />
+              </Field>
+              <Field label="Annual rate">
+                <Slider value={rateBps} min={800} max={2000} step={25} onChange={setRateBps} format={(v) => `${(v / 100).toFixed(2)}%`} />
+              </Field>
+              <Button variant="primary" onClick={submitOffer}>
                 Submit offer
-              </button>
+              </Button>
             </div>
           )}
-        </Card>
+        </Panel>
       </div>
 
-      <Card>
-        <SectionTitle>My book</SectionTitle>
-        {book.length === 0 && <EmptyState>No financed receivables yet.</EmptyState>}
+      <Panel title="My book">
+        {book.length === 0 && <Empty message="No financed receivables yet." />}
         {book.length > 0 && (
-          <table className="w-full text-left text-xs">
-            <thead className="text-slate-500">
-              <tr>
-                <th className="pb-1 font-medium">SB</th>
-                <th className="pb-1 font-medium">State</th>
-                <th className="pb-1 font-medium">Advance</th>
-                <th className="pb-1 font-medium">Rate</th>
-                <th className="pb-1 font-medium">Waterfall (due / fee / exporter / shortfall)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {book.map((b) => {
-                const wf = waterfalls[b.sb_hash];
-                return (
-                  <tr key={b.sb_hash} className="border-t border-slate-800/70">
-                    <td className="py-1.5 font-mono text-slate-300">{b.sb_no}</td>
-                    <td className="py-1.5">
-                      <StateBadge state={b.state} />
-                    </td>
-                    <td className="py-1.5 text-slate-300">{formatInrMinor(b.advance_minor)}</td>
-                    <td className="py-1.5 text-slate-300">{(b.rate_bps / 100).toFixed(2)}%</td>
-                    <td className="py-1.5 text-slate-400">
-                      {wf ? (
-                        <>
-                          {formatInrMinor(wf.financierDue)} / {formatInrMinor(wf.platformFee)} / {formatInrMinor(wf.exporterBalance)} / {formatInrMinor(wf.shortfall)}
-                        </>
-                      ) : (
-                        <Spinner />
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="flex flex-col">
+            {book.map((b) => {
+              const wf = waterfalls[b.sb_hash];
+              return (
+                <div key={b.sb_hash} className="flex flex-wrap items-center gap-x-6 gap-y-1 border-b border-line py-2.5 text-sm last:border-b-0">
+                  <span className="font-mono tabular text-text">SB {b.sb_no}</span>
+                  <Stamp state={b.state} size="sm" />
+                  <span className="font-mono tabular text-xs text-muted">
+                    <Money minor={b.advance_minor} size="sm" /> advance
+                  </span>
+                  <span className="font-mono tabular text-xs text-muted">{(b.rate_bps / 100).toFixed(2)}% rate</span>
+                  {wf ? (
+                    <span className="font-mono tabular text-xs text-faint">
+                      due <Money minor={wf.financierDue} size="sm" />, fee <Money minor={wf.platformFee} size="sm" />, exporter{' '}
+                      <Money minor={wf.exporterBalance} size="sm" />
+                      {wf.shortfall ? (
+                        <span className="text-danger">
+                          , shortfall <Money minor={wf.shortfall} size="sm" />
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : (
+                    <Skeleton className="h-4 w-40" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
-      </Card>
+      </Panel>
 
-      <Card>
-        <SectionTitle>Alerts</SectionTitle>
-        {alerts.length === 0 && <EmptyState>No alerts.</EmptyState>}
-        <div className="flex flex-col gap-2">
+      <Panel title="Alerts">
+        {alerts.length === 0 && <Empty message="No alerts." />}
+        <div className="flex flex-col">
           {alerts.map((a) => (
-            <div key={a.id} className="rounded-lg border border-amber-900/60 bg-amber-950/20 p-2.5 text-xs text-amber-200">
-              <span className="mr-2 font-semibold uppercase">{a.type}</span>
-              {a.message}
-            </div>
+            <RuleRow key={a.id}>
+              <span className="font-mono tabular text-xs uppercase text-accent-text">{a.type}</span>
+              <span className="text-text">{a.message}</span>
+            </RuleRow>
           ))}
         </div>
-      </Card>
+      </Panel>
     </div>
   );
 }
